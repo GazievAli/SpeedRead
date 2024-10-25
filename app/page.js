@@ -5,25 +5,26 @@ export default function Home() {
   const [selectedFile, setSelectedFile] = useState(null);
   const [text, setText] = useState("");
   const [speed, setSpeed] = useState(1);
-  const [intervalText, setIntervalText] = useState(0);
+  const [intervalText, setIntervalText] = useState(1);
+  const [isStartInterval, setIsStartInterval] = useState(false);
+  const [isStartText, setIsStartText] = useState(false);
+  const [idWord, setIdWord] = useState(0);
+  const [words, setWords] = useState([]);
 
   const handleFileChange = (event) => {
     setSelectedFile(event.target.files[0])
   }
 
   const handleFileUpload = () => {
+    setIsStartInterval(!isStartInterval)
     if (selectedFile) {
       const reader = new FileReader();
       reader.onload = (event) => {
         const text = event.target.result;
         setText(text)
-        setIntervalText(5);
-        const intervalId = setInterval(() => {
-          intervalText > 0 ? setIntervalText((prevIntervalText) => prevIntervalText - 1) : clearInterval(intervalId)
-         }, 1000);
       }
       reader.onerror = (error) => {
-        console.error("Ошибка при загрузке файла:", error);
+        console.error("Ошибка при загрузке файла: ", error);
       }
       reader.readAsText(selectedFile);
     } else {
@@ -33,10 +34,47 @@ export default function Home() {
 
   const changeSpeed = () => speed < 5 ? setSpeed(() => speed + 1) : setSpeed(1)
 
+  useEffect(() => {
+    if (isStartInterval) {
+      let intervalId = null;
+      if (intervalText > 0) {
+        intervalId = setInterval(() => {
+          setIntervalText((prev) => prev - 1);
+        }, 1000);
+      } else if (intervalId) {
+        clearInterval(intervalId);
+      }
+      else {
+        setIntervalText("Начали!")
+        setTimeout(() => {
+          setIntervalText("")
+          setIsStartInterval(!isStartInterval)
+          setIsStartText(!isStartText)
+        }, 1000)
+      }
+      return () => clearInterval(intervalId);
+    }
+   }, [intervalText, isStartInterval]);
+
+   useEffect(() => {
+    if (isStartText) {
+      let intervalId = setInterval(() => {
+        setIdWord((prev) => {
+          if (prev < words.length - 1) { 
+            return prev + 1; 
+          } else {
+            return prev;
+          }
+        });
+      }, 1000);
+      return () => clearInterval(intervalId); 
+    }
+   }, [isStartText, words]);
+
   return (
     <div className="Home">
       <div className="flex flex-row w-full p-10 bg-gray-950 text-white">
-        <span className="basis-1/2">Speed Reader</span>
+        <span className="basis-1/2 text-xl pt-2">Speed Reader</span>
         <div className="basis-1/2 text-right">
           <button type="button" onClick={changeSpeed} className="bg-zinc-50 p-2 px-10 text-black pb-3 text-xl rounded">
             Скорость: {speed}
@@ -57,7 +95,7 @@ export default function Home() {
         </button>
         <input type="file" className="mx-10 m-5 w-80" onChange={handleFileChange}/>
         <h1 className="text-4xl m-10">
-          {intervalText}
+          { isStartInterval ? intervalText : text}
         </h1>
         </div>
       </main>
